@@ -1,51 +1,85 @@
 package com.example.alarmapp
 
+import android.Manifest
 import android.annotation.SuppressLint
 import android.app.AlarmManager
+import android.app.NotificationChannel
+import android.app.NotificationManager
 import android.app.PendingIntent
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import android.content.pm.PackageManager
+import android.os.Build
 import android.util.Log
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
+import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
+import androidx.core.content.ContextCompat
 import java.lang.reflect.Array.set
 import java.util.Calendar
 
 class BootReceiver : BroadcastReceiver() {
+    @SuppressLint("InlinedApi")
     override fun onReceive(context: Context?, intent: Intent?) {
-
-        Log.d("onReceive BootReceiver", intent?.action.toString())
-
+        
+        Log.d("AlarmReceiver", "Alarm triggered!")
+        
+        val isPermissionGranted = ContextCompat.checkSelfPermission(
+            context!!,
+            Manifest.permission.POST_NOTIFICATIONS
+        ) == PackageManager.PERMISSION_GRANTED
+        
+        
         if (intent != null && Intent.ACTION_BOOT_COMPLETED == intent.action) {
-            context?.let {
-                // Re-schedule alarms
-                scheduleDailyAlarm(it)
+            if (isPermissionGranted) {
+                showNotification(context!!)
+            } else {
+                Log.d("AlarmReceiver", "Permission not granted")
             }
+        } else {
+            Log.d("AlarmReceiver", "Else Block Intent Action")
         }
     }
-
-    @SuppressLint("ScheduleExactAlarm")
-    private fun scheduleDailyAlarm(context: Context) {
-        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        val startDate = Calendar.getInstance().apply {
-            set(Calendar.HOUR_OF_DAY, 9) // Example: 9 AM
-            set(Calendar.MINUTE, 0)
-            set(Calendar.SECOND, 0)
+    
+    @SuppressLint("MissingPermission")
+    private fun showNotification(context: Context) {
+        Log.d("Show notification", "Firing!!!")
+        val channelId = "alarm_channel"
+        val channelName = "Alarm Notification"
+        
+        Log.d("Show notification", channelId)
+        
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                channelId,
+                channelName,
+                NotificationManager.IMPORTANCE_HIGH
+            )
+            val notificationManager =
+                context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            notificationManager.createNotificationChannel(channel)
         }
-
-        Log.d("BootReceiver", "ScheduleDailyAlarm: ${startDate.time}")
-
-        val intent = Intent(context, AlarmReceiver::class.java)
-        val pendingIntent = PendingIntent.getBroadcast(
-            context,
-            0,
-            intent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-
-        alarmManager.setExactAndAllowWhileIdle(
-            AlarmManager.RTC_WAKEUP,
-            startDate.timeInMillis,
-            pendingIntent
-        )
+        
+        val notification = NotificationCompat.Builder(context, channelId)
+            .setContentTitle("Alarm Triggered")
+            .setContentText("Your alarm has been triggered.")
+            .setSmallIcon(android.R.drawable.ic_dialog_alert)
+            .setPriority(NotificationCompat.PRIORITY_HIGH)
+            .build()
+        
+        NotificationManagerCompat.from(context).notify(1, notification)
+        
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.TIRAMISU ||
+            ContextCompat.checkSelfPermission(
+                context,
+                Manifest.permission.POST_NOTIFICATIONS
+            ) == PackageManager.PERMISSION_GRANTED
+        ) {
+            NotificationManagerCompat.from(context).notify(1, notification)
+        } else {
+            Log.e("Notification", "POST_NOTIFICATIONS permission not granted")
+        }
     }
 }
