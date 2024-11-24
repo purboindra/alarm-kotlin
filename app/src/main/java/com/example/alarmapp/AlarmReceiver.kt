@@ -1,30 +1,40 @@
 package com.example.alarmapp
 
+import android.annotation.SuppressLint
 import android.app.AlarmManager
 import android.app.PendingIntent
+import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
-import android.os.Build
 import android.util.Log
 import java.util.Calendar
 
-fun schedulerAlarm(context: Context, alarmTimer: java.util.Calendar) {
-    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
-        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+class AlarmReceiver : BroadcastReceiver() {
+    @SuppressLint("UnsafeProtectedBroadcastReceiver")
+    override fun onReceive(context: Context, @SuppressLint("UnsafeIntentLaunch") intent: Intent) {
+        Log.d("AlarmReceiver", "Alarm triggered!")
+        val startDate = intent.getLongExtra("start_date", -1)
+        val endDate = intent.getLongExtra("end_date", -1)
+        val currentTime = System.currentTimeMillis()
         
-        if (alarmManager.canScheduleExactAlarms()) {
-            val intent = Intent(context, AlarmReceiver::class.java)
+        Log.d(
+            "AlarmReceiver",
+            "Alarm triggered! Start: $startDate, End: $endDate, CurrentTime: $currentTime"
+        )
+        
+        if (currentTime > endDate) {
+            showNotification(context, "Alarm Triggered", "This is your last scheduled alarm.")
+            val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
             val pendingIntent = PendingIntent.getBroadcast(
-                context,
-                0,
-                intent,
+                context, 0, intent,
                 PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
             )
-            alarmManager.setExact(AlarmManager.RTC_WAKEUP, alarmTimer.timeInMillis, pendingIntent)
+            alarmManager.cancel(pendingIntent)
+            return
         }
+        showNotification(context, "Alarm Triggered", "This is your scheduled alarm.")
     }
 }
-
 
 //SCHEDULE ALARM BY DAILY
 fun scheduleDailyAlarm(
@@ -38,15 +48,19 @@ fun scheduleDailyAlarm(
     val alarmId = 1
     
     startDate.set(Calendar.HOUR_OF_DAY, hour)
-    Log.d("startDate", "After setting HOUR_OF_DAY: ${startDate.time}")
     startDate.set(Calendar.MINUTE, minute)
-    Log.d("startDate", "After setting MINUTE: ${startDate.time}")
     startDate.set(Calendar.SECOND, 0)
-    Log.d("startDate", "After setting SECOND: ${startDate.time}")
+    
+//    endDate.set(Calendar.HOUR_OF_DAY, hour)
+//    endDate.set(Calendar.MINUTE, minute)
+//    endDate.set(Calendar.SECOND, 0)
     
     Log.d("startDate", "Input Hour: $hour, Input Minute: $minute")
     Log.d("startDate", startDate.time.toString())
     Log.d("endDate", endDate.time.toString())
+    
+    Log.d("startDate", "timeInMillis: ${startDate.timeInMillis}")
+    Log.d("endDate", "timeInMillis: ${endDate.timeInMillis}")
     
     val intent = Intent(context, AlarmReceiver::class.java).apply {
         putExtra("alarm_id", alarmId)
@@ -62,7 +76,7 @@ fun scheduleDailyAlarm(
     alarmManager.setRepeating(
         AlarmManager.RTC_WAKEUP,
         startDate.timeInMillis,
-        System.currentTimeMillis() + 60000L,
+        60000L,
         pendingIntent
     )
 }
