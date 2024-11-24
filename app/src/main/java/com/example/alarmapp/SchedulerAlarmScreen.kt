@@ -1,19 +1,22 @@
 package com.example.alarmapp
 
+import android.Manifest
+import android.annotation.SuppressLint
 import android.content.Context
 import android.content.pm.PackageManager
 import android.util.Log
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Slider
 import androidx.compose.material3.Text
+import androidx.compose.material3.TimePickerState
+import androidx.compose.material3.rememberTimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
@@ -25,23 +28,24 @@ import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.example.alarmapp.utils.showDatePicker
-import java.util.Calendar
-import android.Manifest
-import android.annotation.SuppressLint
-import android.widget.Space
 import java.text.SimpleDateFormat
+import java.util.Calendar
 import java.util.Locale
 
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ScheduleAlarmScreen(context: Context, modifier: Modifier) {
     val calendar = Calendar.getInstance()
-    var hour by remember { mutableIntStateOf(calendar.get(Calendar.HOUR_OF_DAY)) }
-    var minute by remember { mutableStateOf(calendar.get(Calendar.MINUTE)) }
     
     var startDate by remember { mutableStateOf(calendar) }
     var endDate by remember { mutableStateOf(calendar) }
     
+    var selectedTime by remember { mutableStateOf<TimePickerState?>(null) }
+    
+    val showDialog = remember {
+        mutableStateOf(false)
+    }
     
     Column(modifier = modifier.padding(16.dp)) {
         Text(text = "Schedule Alarm", style = MaterialTheme.typography.bodyLarge)
@@ -54,28 +58,55 @@ fun ScheduleAlarmScreen(context: Context, modifier: Modifier) {
         
         Spacer(modifier = Modifier.height(20.dp))
         
-        Row {
-            Text(text = "Hour: ${hour}")
-            Slider(
-                value = hour.toFloat(),
-                onValueChange = { time ->
-                    hour = time.toInt()
-                },
-                valueRange = 0f..23f
-            )
-        }
-        Row {
-            Text(text = "Minute: $minute")
-            Slider(
-                value = minute.toFloat(),
-                onValueChange = { minute = it.toInt() },
-                valueRange = 0f..59f
-            )
+        when {
+            selectedTime != null -> {
+                Text("Alarm set: ${selectedTime?.hour}:${selectedTime?.minute} WIB")
+            }
+            
+            else -> {
+                Button(
+                    onClick = {
+                        showDialog.value = true
+                    }
+                ) {
+                    Text(text = "Set Clock")
+                }
+            }
         }
         
+        when {
+            showDialog.value -> {
+                TimePickerCompose(
+                    onDismiss = {
+                        showDialog.value = false
+                    },
+                    onConfirm = { it ->
+                        selectedTime = it
+                        
+                        selectedTime?.let {
+                            Log.d("Set Clock Hour", it.hour.toString())
+                            Log.d("Set Clock Minute", it.minute.toString())
+                        }
+                        
+                        showDialog.value = false
+                        
+                    }
+                )
+            }
+        }
+        
+        Spacer(modifier = Modifier.height(12.dp))
+        
         Button(
+            enabled = selectedTime != null,
             onClick = {
-                scheduleDailyAlarm(context, startDate, endDate, hour, minute)
+                scheduleDailyAlarm(
+                    context,
+                    startDate,
+                    endDate,
+                    selectedTime!!.hour,
+                    selectedTime!!.minute
+                )
             }
         ) {
             Text(text = "Set Alarm")
