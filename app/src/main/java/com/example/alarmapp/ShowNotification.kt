@@ -49,7 +49,7 @@ fun showNotification(context: Context, title: String, message: String) {
     )
     
     val action =
-        NotificationCompat.Action(android.R.drawable.arrow_down_float, "Tap Me", pendingIntent)
+        NotificationCompat.Action(android.R.drawable.arrow_down_float, "Open App", pendingIntent)
     
     val notification = NotificationCompat.Builder(context, channelId).setContentTitle(title)
         .setContentText(message).setSmallIcon(android.R.drawable.ic_dialog_alert)
