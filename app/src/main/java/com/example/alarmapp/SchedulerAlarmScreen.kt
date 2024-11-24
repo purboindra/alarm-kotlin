@@ -100,8 +100,6 @@ fun RequestNotificationPermission(context: Context) {
     ) { isGranted: Boolean ->
         if (isGranted) {
             showNotification(context, "Hello", "Test Notif")
-        } else {
-            Log.e("Permission", "POST_NOTIFICATIONS permission denied")
         }
     }
     
