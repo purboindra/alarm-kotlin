@@ -73,10 +73,10 @@ fun scheduleDailyAlarm(
         PendingIntent.FLAG_IMMUTABLE
     )
     
-    alarmManager.setRepeating(
+    alarmManager.setInexactRepeating(
         AlarmManager.RTC_WAKEUP,
         startDate.timeInMillis,
-        60000L,
+        AlarmManager.INTERVAL_DAY,
         pendingIntent
     )
 }
