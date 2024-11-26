@@ -37,32 +37,50 @@ import java.util.Locale
 @Composable
 fun ScheduleAlarmScreen(context: Context, modifier: Modifier) {
     val calendar = Calendar.getInstance()
-    
+
     var startDate by remember { mutableStateOf(calendar) }
     var endDate by remember { mutableStateOf(calendar) }
-    
+
     var selectedTime by remember { mutableStateOf<TimePickerState?>(null) }
-    
+
     val showDialog = remember {
         mutableStateOf(false)
     }
-    
+
     Column(modifier = modifier.padding(16.dp)) {
         Text(text = "Schedule Alarm", style = MaterialTheme.typography.bodyLarge)
         Spacer(modifier = modifier.height(16.dp))
-        
+
+        Row {
+            AssistChip(
+                onClick = { Log.d("Assist chip", "hello world") },
+                label = { Text("Assist chip") },
+                leadingIcon = {
+                    Icon(
+                        Icons.Filled.Settings,
+                        contentDescription = "Localized description",
+                        Modifier.size(AssistChipDefaults.IconSize)
+                    )
+                }
+            )
+        }
+
+        Spacer(modifier = modifier.height(10.dp))
+
+
+
         DateRangePicker(startDate = calendar, endDate = calendar) { start, end ->
             startDate = start
             endDate = end
         }
-        
+
         Spacer(modifier = Modifier.height(20.dp))
-        
+
         when {
             selectedTime != null -> {
                 Text("Alarm set: ${selectedTime?.hour}:${selectedTime?.minute} WIB")
             }
-            
+
             else -> {
                 Button(
                     onClick = {
@@ -73,7 +91,7 @@ fun ScheduleAlarmScreen(context: Context, modifier: Modifier) {
                 }
             }
         }
-        
+
         when {
             showDialog.value -> {
                 TimePickerCompose(
@@ -82,21 +100,21 @@ fun ScheduleAlarmScreen(context: Context, modifier: Modifier) {
                     },
                     onConfirm = { it ->
                         selectedTime = it
-                        
+
                         selectedTime?.let {
                             Log.d("Set Clock Hour", it.hour.toString())
                             Log.d("Set Clock Minute", it.minute.toString())
                         }
-                        
+
                         showDialog.value = false
-                        
+
                     }
                 )
             }
         }
-        
+
         Spacer(modifier = Modifier.height(12.dp))
-        
+
         Button(
             enabled = selectedTime != null,
             onClick = {
@@ -111,21 +129,21 @@ fun ScheduleAlarmScreen(context: Context, modifier: Modifier) {
         ) {
             Text(text = "Set Alarm")
         }
-        
+
         RequestNotificationPermission(context)
-        
+
     }
 }
 
 @SuppressLint("InlinedApi")
 @Composable
 fun RequestNotificationPermission(context: Context) {
-    
+
     val isPermissionGranted = ContextCompat.checkSelfPermission(
         context,
         Manifest.permission.POST_NOTIFICATIONS
     ) == PackageManager.PERMISSION_GRANTED
-    
+
     val requestPermissionLauncher = rememberLauncherForActivityResult(
         ActivityResultContracts.RequestPermission()
     ) { isGranted: Boolean ->
@@ -133,7 +151,7 @@ fun RequestNotificationPermission(context: Context) {
             showNotification(context, "Hello", "Test Notif")
         }
     }
-    
+
     if (!isPermissionGranted) {
         Button(onClick = {
             requestPermissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
@@ -153,17 +171,17 @@ fun DateRangePicker(
     val context = LocalContext.current
     var start by remember { mutableStateOf(startDate) }
     var end by remember { mutableStateOf(endDate) }
-    
+
     val dateFormatter = SimpleDateFormat("EEEE, dd MMM yyyy", Locale("id", "ID"))
-    
+
     val formatStart = start?.time?.let {
         dateFormatter.format(it)
     }
-    
+
     val formatEnd = end?.time?.let {
         dateFormatter.format(it)
     }
-    
+
     Column {
         Text("Start date: ${formatStart ?: "Invalid date"}")
         Spacer(modifier = Modifier.height(5.dp))
@@ -175,12 +193,12 @@ fun DateRangePicker(
         }) {
             Text(text = "Change Date")
         }
-        
+
         Spacer(modifier = Modifier.height(20.dp))
-        
+
         Text("End date: ${formatEnd ?: "Invalid date"}")
         Spacer(modifier = Modifier.height(5.dp))
-        
+
         Button(onClick = {
             showDatePicker(context) { selectedDate ->
                 end = selectedDate
@@ -189,6 +207,6 @@ fun DateRangePicker(
         }) {
             Text(text = "Change Date")
         }
-        
+
     }
 }
