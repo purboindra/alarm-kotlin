@@ -16,6 +16,7 @@ import android.content.Intent
 
 fun showNotification(context: Context, title: String, message: String) {
     val channelId = "alarm_channel"
+    val chanelName = "Alarm Notification"
     
     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
         if (ActivityCompat.checkSelfPermission(context, Manifest.permission.POST_NOTIFICATIONS)
@@ -29,10 +30,10 @@ fun showNotification(context: Context, title: String, message: String) {
     val notificationManager =
         context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
     
-    if (Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
         val channel = NotificationChannel(
             channelId,
-            "Alarm Notification",
+            chanelName,
             NotificationManager.IMPORTANCE_HIGH
         )
         notificationManager.createNotificationChannel(channel)
