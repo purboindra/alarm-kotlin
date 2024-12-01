@@ -7,6 +7,7 @@ import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
 import android.util.Log
+import com.example.alarmapp.utils.ScheduleType
 import java.util.Calendar
 
 class AlarmReceiver : BroadcastReceiver() {
@@ -42,7 +43,8 @@ fun scheduleDailyAlarm(
     startDate: Calendar,
     endDate: Calendar,
     hour: Int,
-    minute: Int
+    minute: Int,
+    type: ScheduleType
 ) {
     val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
     val alarmId = 1
@@ -50,17 +52,15 @@ fun scheduleDailyAlarm(
     startDate.set(Calendar.HOUR_OF_DAY, hour)
     startDate.set(Calendar.MINUTE, minute)
     startDate.set(Calendar.SECOND, 0)
-    
-//    endDate.set(Calendar.HOUR_OF_DAY, hour)
-//    endDate.set(Calendar.MINUTE, minute)
-//    endDate.set(Calendar.SECOND, 0)
-    
+
     Log.d("startDate", "Input Hour: $hour, Input Minute: $minute")
     Log.d("startDate", startDate.time.toString())
     Log.d("endDate", endDate.time.toString())
     
     Log.d("startDate", "timeInMillis: ${startDate.timeInMillis}")
     Log.d("endDate", "timeInMillis: ${endDate.timeInMillis}")
+    
+    Log.d("type", "Schedule Type: ${type.toString()}")
     
     val intent = Intent(context, AlarmReceiver::class.java).apply {
         putExtra("alarm_id", alarmId)
@@ -73,10 +73,17 @@ fun scheduleDailyAlarm(
         PendingIntent.FLAG_IMMUTABLE
     )
     
+    val interval = when (type) {
+        ScheduleType.MINUTE -> 60000L
+        ScheduleType.FIFTEENMINUTE -> AlarmManager.INTERVAL_FIFTEEN_MINUTES
+        ScheduleType.HOURLY -> AlarmManager.INTERVAL_HOUR
+        else -> AlarmManager.INTERVAL_DAY
+    }
+    
     alarmManager.setInexactRepeating(
         AlarmManager.RTC_WAKEUP,
         startDate.timeInMillis,
-        AlarmManager.INTERVAL_DAY,
+        interval,
         pendingIntent
     )
 }
