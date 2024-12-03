@@ -14,6 +14,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.safeContentPadding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
@@ -23,15 +24,20 @@ import androidx.compose.material.icons.filled.Check
 import androidx.compose.material3.AssistChip
 import androidx.compose.material3.AssistChipDefaults
 import androidx.compose.material3.Button
+import androidx.compose.material3.CircularProgressIndicator
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.Text
 import androidx.compose.material3.TimePickerState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
+import androidx.compose.runtime.rememberCoroutineScope
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -40,6 +46,8 @@ import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import com.example.alarmapp.utils.ScheduleType
 import com.example.alarmapp.utils.showDatePicker
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import java.text.SimpleDateFormat
 import java.util.Calendar
 import java.util.Locale
@@ -47,7 +55,14 @@ import java.util.Locale
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun ScheduleAlarmScreen(context: Context, modifier: Modifier) {
+fun ScheduleAlarmScreen(context: Context) {
+    
+    val snackbarHostState = remember { SnackbarHostState() }
+    val scope = rememberCoroutineScope()
+    
+    var isLoading by remember {
+        mutableStateOf(false)
+    }
     
     val scheduleTypes = listOf<Map<String, Any>>(
         mapOf(
@@ -83,110 +98,145 @@ fun ScheduleAlarmScreen(context: Context, modifier: Modifier) {
         mutableStateOf(false)
     }
     
-    Column(modifier = modifier.padding(16.dp)) {
-        Text(text = "Schedule Alarm", style = MaterialTheme.typography.bodyLarge)
-        Row(
-            modifier = modifier
-                .padding(vertical = 4.dp)
+    Scaffold(
+        snackbarHost = {
+            SnackbarHost(hostState = snackbarHostState)
+        }
+    ) { paddingValues ->
+        Column(
+            modifier = Modifier
+                .padding(paddingValues)
+                .safeContentPadding()
         ) {
-            Text(
-                "Type: ",
-                modifier = Modifier.align(Alignment.CenterVertically)
-            )
-            Box(modifier = Modifier.width(10.dp))
-            LazyRow(
+            Text(text = "Schedule Alarm", style = MaterialTheme.typography.bodyLarge)
+            Row(
                 modifier = Modifier
-                    .fillMaxWidth()
-                    .align(Alignment.CenterVertically)
+                    .padding(vertical = 4.dp)
             ) {
-                items(scheduleTypes) { item ->
-                    AssistChip(
+                Text(
+                    "Type: ",
+                    modifier = Modifier.align(Alignment.CenterVertically)
+                )
+                Box(modifier = Modifier.width(10.dp))
+                LazyRow(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .align(Alignment.CenterVertically)
+                ) {
+                    items(scheduleTypes) { item ->
+                        AssistChip(
+                            onClick = {
+                                selectedSchedule.value = item["value"] as ScheduleType
+                            },
+                            label = { Text(item["title"] as String) },
+                            leadingIcon = {
+                                if (selectedSchedule.value == item["value"])
+                                    Icon(
+                                        Icons.Filled.Check,
+                                        contentDescription = "Schedule",
+                                        Modifier.size(AssistChipDefaults.IconSize)
+                                    )
+                            },
+                            modifier = Modifier
+                                .align(Alignment.CenterVertically)
+                                .padding(end = 5.dp),
+                        )
+                    }
+                }
+            }
+            
+            
+            DateRangePicker(startDate = calendar, endDate = calendar) { start, end ->
+                startDate = start
+                endDate = end
+            }
+            
+            Spacer(modifier = Modifier.height(20.dp))
+            
+            when {
+                selectedTime != null -> {
+                    Text("Alarm set: ${selectedTime?.hour}:${selectedTime?.minute} WIB")
+                }
+                
+                else -> {
+                    Button(
                         onClick = {
-                            selectedSchedule.value = item["value"] as ScheduleType
+                            showDialog.value = true
+                        }
+                    ) {
+                        Text(text = "Set Clock")
+                    }
+                }
+            }
+            
+            when {
+                showDialog.value -> {
+                    TimePickerCompose(
+                        onDismiss = {
+                            showDialog.value = false
                         },
-                        label = { Text(item["title"] as String) },
-                        leadingIcon = {
-                            if (selectedSchedule.value == item["value"])
-                                Icon(
-                                    Icons.Filled.Check,
-                                    contentDescription = "Schedule",
-                                    Modifier.size(AssistChipDefaults.IconSize)
-                                )
-                        },
-                        modifier = Modifier
-                            .align(Alignment.CenterVertically)
-                            .padding(end = 5.dp),
+                        onConfirm = { it ->
+                            selectedTime = it
+                            
+                            selectedTime?.let {
+                                Log.d("Set Clock Hour", it.hour.toString())
+                                Log.d("Set Clock Minute", it.minute.toString())
+                            }
+                            
+                            showDialog.value = false
+                            
+                        }
                     )
                 }
             }
-        }
-        
-        
-        DateRangePicker(startDate = calendar, endDate = calendar) { start, end ->
-            startDate = start
-            endDate = end
-        }
-        
-        Spacer(modifier = Modifier.height(20.dp))
-        
-        when {
-            selectedTime != null -> {
-                Text("Alarm set: ${selectedTime?.hour}:${selectedTime?.minute} WIB")
+            
+            Spacer(modifier = Modifier.height(12.dp))
+            
+            Button(
+                enabled = selectedTime != null && !isLoading,
+                onClick = {
+                    scope.launch {
+                        
+                        isLoading = true
+                        
+                        scheduleDailyAlarm(
+                            context,
+                            startDate,
+                            endDate,
+                            selectedTime!!.hour,
+                            selectedTime!!.minute,
+                            selectedSchedule.value,
+                        )
+                        
+                        delay(1500)
+                        
+                        isLoading = false
+                        
+                        snackbarHostState.showSnackbar(
+                            "Success set Notification Schedule!"
+                        )
+                        
+                    }
+                    
+                }
+            ) {
+                if (isLoading) Box(contentAlignment = Alignment.Center) {
+                    Row {
+                        CircularProgressIndicator(
+                            modifier = Modifier.then(Modifier.size(24.dp))
+                        )
+                        Box(modifier = Modifier.width(5.dp))
+                        Text("Loading...")
+                    }
+                } else Text(text = "Set Alarm")
             }
             
-            else -> {
-                Button(
-                    onClick = {
-                        showDialog.value = true
-                    }
-                ) {
-                    Text(text = "Set Clock")
-                }
-            }
+            RequestNotificationPermission(context)
+            
         }
-        
-        when {
-            showDialog.value -> {
-                TimePickerCompose(
-                    onDismiss = {
-                        showDialog.value = false
-                    },
-                    onConfirm = { it ->
-                        selectedTime = it
-                        
-                        selectedTime?.let {
-                            Log.d("Set Clock Hour", it.hour.toString())
-                            Log.d("Set Clock Minute", it.minute.toString())
-                        }
-                        
-                        showDialog.value = false
-                        
-                    }
-                )
-            }
-        }
-        
-        Spacer(modifier = Modifier.height(12.dp))
-        
-        Button(
-            enabled = selectedTime != null,
-            onClick = {
-                scheduleDailyAlarm(
-                    context,
-                    startDate,
-                    endDate,
-                    selectedTime!!.hour,
-                    selectedTime!!.minute,
-                    selectedSchedule.value,
-                )
-            }
-        ) {
-            Text(text = "Set Alarm")
-        }
-        
-        RequestNotificationPermission(context)
         
     }
+    
 }
 
 @SuppressLint("InlinedApi")

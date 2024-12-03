@@ -3,7 +3,6 @@ package com.example.alarmapp
 import android.Manifest
 import android.app.AlertDialog
 import android.content.Intent
-
 import android.content.pm.PackageManager
 import android.net.Uri
 import android.os.Build
@@ -15,10 +14,6 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.result.contract.ActivityResultContracts
 import androidx.annotation.RequiresApi
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.ui.Modifier
 import androidx.core.content.ContextCompat
 import com.example.alarmapp.ui.theme.AlarmAppTheme
 
@@ -42,12 +37,9 @@ class MainActivity : ComponentActivity() {
         
         setContent {
             AlarmAppTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    ScheduleAlarmScreen(
-                        context = this,
-                        modifier = Modifier.padding(innerPadding)
-                    )
-                }
+                ScheduleAlarmScreen(
+                    context = this,
+                )
             }
         }
         
